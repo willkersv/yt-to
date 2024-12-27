@@ -14,13 +14,13 @@ export default function App() {
     }
 
     try {
-      const response = await axios.post("http://<YOUR_SERVER_IP>:5000/download", {
+      const response = await axios.post("https://yt-to-production.up.railway.app/download", {
         url: link,
         format: format,
       });
 
       // Alerta de sucesso
-      Alert.alert("Sucesso", response.data.message);
+      Alert.alert("Sucesso", response.data.message || "Download iniciado com sucesso!");
     } catch (error) {
       console.error(error);
       Alert.alert("Erro", "Houve um erro ao baixar o vídeo.");
@@ -44,7 +44,7 @@ export default function App() {
       >
         <Picker.Item label="MP4" value="mp4" />
         <Picker.Item label="MP3" value="mp3" />
-        <Picker.Item label="AVI" value="avi" />
+        {/* Removido o formato AVI pois não é suportado pelo backend */}
       </Picker>
       <Button title="Baixar Vídeo" onPress={handleDownload} />
     </View>
