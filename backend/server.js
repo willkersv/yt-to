@@ -1,49 +1,70 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
-const { exec } = require("child_process");  // Para executar o comando yt-dlp
+const { exec } = require("child_process");
 const app = express();
 const port = 5000;
+const cors = require("cors");
 
-// Middleware para permitir o envio de dados em JSON
+app.use(cors());
 app.use(express.json());
 
-// Função para baixar o vídeo usando yt-dlp
+// Função para baixar o vídeo ou áudio usando yt-dlp
 const downloadVideo = (url, format, res) => {
-  // Definir o diretório de downloads
+  // Diretório de downloads
   const downloadDir = path.join(__dirname, "downloads");
 
   if (!fs.existsSync(downloadDir)) {
-    fs.mkdirSync(downloadDir); // Cria o diretório de downloads, se não existir
+    fs.mkdirSync(downloadDir); // Cria o diretório, se não existir
   }
 
-  const fileName = `video.${format}`;
-  const outputPath = path.join(downloadDir, fileName);
+  // Escolher o formato correto
+  const formatOption = format === "mp3" ? "bestaudio" : "b"; // Melhor áudio para mp3, ou "b" para vídeo
 
-  // Definir o formato de download
-  const formatOption = format === "mp3" ? "bestaudio" : "best";  // Se for mp3, baixa o melhor áudio; senão, baixa o melhor vídeo com áudio
-
-  // Comando para executar o yt-dlp
-  const command = `yt-dlp -f "${formatOption}" -o "${outputPath}" ${url}`;
+  // Comando para baixar o arquivo
+  const command = `yt-dlp -f "${formatOption}" -o "${downloadDir}/%(title)s.%(ext)s" ${url}`;
 
   // Executa o comando yt-dlp
   exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error("Erro ao baixar o vídeo:", err);
-      return res.status(500).send("Erro ao baixar o vídeo.");
-    }
-
-    if (stderr) {
-      console.error("Erro no yt-dlp:", stderr);
-      return res.status(500).send("Erro ao processar o vídeo.");
+    if (err || stderr.includes("ERROR")) {
+      console.error("Erro ao baixar o vídeo:", err || stderr);
+      return res.status(500).send("Erro ao baixar o arquivo.");
     }
 
     console.log("Download concluído:", stdout);
-    res.sendFile(outputPath);  // Envia o arquivo para o cliente
+
+    // Localizar o arquivo baixado
+    fs.readdir(downloadDir, (readErr, files) => {
+      if (readErr) {
+        console.error("Erro ao listar os arquivos:", readErr);
+        return res.status(500).send("Erro ao processar o arquivo baixado.");
+      }
+
+      // Encontra o arquivo baixado (provavelmente em .webm)
+      const downloadedFile = files.find((file) =>
+        file.match(/\.(webm|mp4|m4a|opus)$/) // Extensões comuns para áudio ou vídeo
+      );
+
+      if (!downloadedFile) {
+        return res.status(500).send("Arquivo baixado não encontrado.");
+      }
+
+      const originalFilePath = path.join(downloadDir, downloadedFile);
+
+      // Renomeia o arquivo para usar a extensão desejada, se for mp3
+      if (format === "mp3") {
+        const renamedFilePath = path.join(downloadDir, downloadedFile.replace(/\.\w+$/, ".mp3"));
+        fs.renameSync(originalFilePath, renamedFilePath);
+        return res.sendFile(renamedFilePath); // Envia o arquivo renomeado para o cliente
+      }
+
+      // Envia o arquivo original se for vídeo
+      res.sendFile(originalFilePath);
+    });
   });
 };
 
-// Rota para fazer o download do vídeo
+// Rota para fazer o download do vídeo ou áudio
 app.post("/download", (req, res) => {
   const { url, format } = req.body;
 
