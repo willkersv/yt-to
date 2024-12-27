@@ -1,1 +1,1 @@
-web: apt-get update && apt-get install -y yt-dlp && cd backend && npm install && npm start
+web: apt-get update && apt-get install -y yt-dlp && yt-dlp -U && cd backend && npm install && npm start
