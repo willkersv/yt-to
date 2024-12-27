@@ -20,7 +20,8 @@ const downloadVideo = (url, format, res) => {
   const fileName = `video.${format}`;
   const outputPath = path.join(downloadDir, fileName);
 
-  const formatOption = format === "mp3" ? "bestaudio/best" : "bestvideo+bestaudio";  // Definir formato de vídeo ou áudio
+  // Definir o formato de download
+  const formatOption = format === "mp3" ? "bestaudio" : "best";  // Se for mp3, baixa o melhor áudio; senão, baixa o melhor vídeo com áudio
 
   // Comando para executar o yt-dlp
   const command = `yt-dlp -f "${formatOption}" -o "${outputPath}" ${url}`;
