@@ -1,15 +1,3 @@
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
-const { exec } = require("child_process");
-const app = express();
-const port = 5000;
-const cors = require("cors");
-
-app.use(cors());
-app.use(express.json());
-
-// Função para baixar o vídeo ou áudio usando yt-dlp
 const downloadVideo = (url, format, res) => {
   // Diretório de downloads
   const downloadDir = path.join(__dirname, "downloads");
@@ -21,8 +9,11 @@ const downloadVideo = (url, format, res) => {
   // Escolher o formato correto
   const formatOption = format === "mp3" ? "bestaudio" : "b"; // Melhor áudio para mp3, ou "b" para vídeo
 
+  // Caminho absoluto para o yt-dlp
+  const ytDlpPath = '/usr/local/bin/yt-dlp';  // Caminho absoluto
+
   // Comando para baixar o arquivo
-  const command = `yt-dlp -f "${formatOption}" -o "${downloadDir}/%(title)s.%(ext)s" ${url}`;
+  const command = `${ytDlpPath} -f "${formatOption}" -o "${downloadDir}/%(title)s.%(ext)s" ${url}`;
 
   // Executa o comando yt-dlp
   exec(command, (err, stdout, stderr) => {
@@ -63,24 +54,3 @@ const downloadVideo = (url, format, res) => {
     });
   });
 };
-
-// Rota para fazer o download do vídeo ou áudio
-app.post("/download", (req, res) => {
-  const { url, format } = req.body;
-
-  if (!url || !format) {
-    return res.status(400).send("URL e formato são obrigatórios.");
-  }
-
-  try {
-    downloadVideo(url, format, res);
-  } catch (err) {
-    console.error("Erro no processo de download:", err);
-    res.status(500).send("Erro ao processar o download.");
-  }
-});
-
-// Iniciar o servidor
-app.listen(port, () => {
-  console.log(`Servidor backend rodando na porta ${port}`);
-});
